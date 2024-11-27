@@ -1,7 +1,7 @@
 ---
-title: "Laboratorio 1"
+title: "Laboratorios 1 y 2"
 subtitle: "Estadística Descriptiva Multivariada"
-author: Maria Fernanda Martinez -- David Santiago Caballero -- Leidy Tatiana Sanchez -- Thomas Felipe Matallana -- Diego Andres Paez -- Carlos Mario Castaño
+author: María Fernanda Martínez -- David Santiago Caballero -- Leidy Tatiana Sanchez -- Thomas Felipe Matallana -- Diego Andrés Páez -- Carlos Mario Castaño
 institute: UNAL - Departamento de estadística
 date: today
 date-format: "dddd, D [de] MMMM, YYYY"
@@ -631,4 +631,3 @@ Nuevamente, la diferencia en los resultados radica en que la función cor() en R
 Resultado2 <- 1 / (n - 1) * t(Y) %*% Y  
 all.equal(MCor, Resultado2)
 ```
-
