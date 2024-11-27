@@ -1,8 +1,8 @@
 ---
 title: "Laboratorios 1 y 2"
 subtitle: "Estadística Descriptiva Multivariada"
-author: María Fernanda Martínez -- David Santiago Caballero -- Leidy Tatiana Sanchez -- Thomas Felipe Matallana -- Diego Andrés Páez -- Carlos Mario Castaño
-institute: UNAL - Departamento de estadística
+author: "María Fernanda Martínez -- David Santiago Caballero -- Leidy Tatiana Sanchez -- Thomas Felipe Matallana <br /> Diego Andrés Páez -- Carlos Mario Castaño"
+institute: "UNAL - Departamento de Estadística"
 date: today
 date-format: "dddd, D [de] MMMM, YYYY"
 lang: es
@@ -23,6 +23,8 @@ warning: false
 editor_options: 
   chunk_output_type: console
 ---
+
+
 
 ```{r setup, include=FALSE}
 #| output: false
