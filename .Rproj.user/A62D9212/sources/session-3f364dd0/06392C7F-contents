@@ -1,0 +1,552 @@
+---
+
+---
+
+```{r setup, include=FALSE}
+#| output: false
+library(readxl)
+library(tm)
+library(wordcloud)
+library(SnowballC)
+library(readr)
+library(tidyverse)
+library(lattice)
+library(MASS)
+library(latex2exp)
+library(bestNormalize)
+library(gt)
+library(gtExtras)
+library(dplyr)
+library(ggplot2)
+library(htmlwidgets)
+library(kableExtra)
+
+options(scipen = 999)
+```
+
+## Punto 1
+
+```{r}
+#Punto 1
+ARWU_100_top <- read.csv2("datos/ARWU_100_top.csv", sep = ";")
+data = data.frame(Universidades = as.factor(ARWU_100_top$Institution),
+                   Premios_Nobel = ARWU_100_top$Award)
+
+# Filtramos las 20 universidades con más premios Nobel
+top_20_datos <- data %>%
+  arrange(desc(Premios_Nobel)) %>% # Ordena en orden descendente
+  slice_head(n = 20)               # Selecciona las primeras 20 filas
+
+# Generamos el gráfico
+ggplot(top_20_datos, aes(x = Universidades, y = Premios_Nobel)) +
+  geom_bar(stat = "identity", fill = "pink") +
+  labs(title = "20 universidades por premios Nobel", x = "Universidad", 
+  y = "Premios Nobel") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1))
+```
+
+## Punto 2 {.scrollable .smaller}
+
+```{r}
+r14_Sci_Qs_Webometrics <- read.csv("datos/r14_Sci_Qs_Webometrics.csv", sep = ";")
+
+# Crear la tabla filtrada y ordenada Ranking QS
+tabla_top20_QS <- r14_Sci_Qs_Webometrics %>%
+dplyr::select(UniPais, SC.Lac.Ranking, WEB.Ranking.LA, QS.Ranking) %>%
+# Selecciona solo las columnas deseadas
+arrange(QS.Ranking) %>% # Ordena por QS.Ranking
+slice_head(n = 20) # Filtra las primeras 20 universidades
+# Crear la tabla filtrada y ordenada por Ranking SC.Lac.Ranking
+tabla_top20_SC <- r14_Sci_Qs_Webometrics %>%
+dplyr::select(UniPais, SC.Lac.Ranking, WEB.Ranking.LA, QS.Ranking) %>%
+# Selecciona solo las columnas deseadas
+arrange(SC.Lac.Ranking) %>% # Ordena por QS.Ranking
+slice_head(n = 20)# Filtra las primeras 20 universidades
+
+tabla_top20_SC |> gt() |> gtExtras::gt_theme_538()
+```
+
+## 
+
+```{r}
+
+#Grafico SC.Lac.ranking vs WEB.Ranking.LA
+plot(r14_Sci_Qs_Webometrics$SC.Lac.Ranking, r14_Sci_Qs_Webometrics$WEB.Ranking.LA, type = "n",
+     xlim = c(0,270), ylim = c(0,170), xlab = "SC.Lac.Ranking",
+     ylab = "WEB.Ranking.LA")
+#Filtramos las universidades para resaltar
+highlight_indices <- which(r14_Sci_Qs_Webometrics$UniPais %in%
+                             c("NAL - CRI",
+                               "DEL BIO-BIO - CHL",
+                               "TALCA - CHL",
+                               "TECNOLOGICA NAL (UTN) - ARG",
+                               "POTFIC CATOLICADESAOPAULO(PUC-SP) - BRA",
+                               "NAL MAYOR DE SAN MARCOS - PER")) #Corregir las universidades
+                               #para resaltar
+
+# Etiquetas estándar (sin resaltar), omitir las etiquetas resaltadas
+  for (i in 1:nrow(r14_Sci_Qs_Webometrics)) {
+    if (!(i %in% highlight_indices)) {
+      text(r14_Sci_Qs_Webometrics$SC.Lac.Ranking[i], r14_Sci_Qs_Webometrics$WEB.Ranking.LA[i],
+             labels = r14_Sci_Qs_Webometrics$UniPais[i], cex = 0.35, pos = 2)
+      }
+    }
+# Agregar la línea diagonal
+abline(a = 0, b = 1, col = "red", lty = 2)
+# Resaltar las etiquetas específicas
+text(r14_Sci_Qs_Webometrics$SC.Lac.Ranking[highlight_indices],
+         r14_Sci_Qs_Webometrics$WEB.Ranking.LA[highlight_indices],
+         labels = r14_Sci_Qs_Webometrics$UniPais[highlight_indices],
+         col = "red", font = 3, cex = 0.4, pos = 3)
+```
+
+## 
+
+```{r}
+
+#Grafico QS.Ranking vs WEB.Ranking.LA
+plot(r14_Sci_Qs_Webometrics$QS.Ranking, r14_Sci_Qs_Webometrics$WEB.Ranking.LA, type = "n",
+     xlim = c(0,270), ylim = c(0,170), xlab = "QS.Ranking",
+     ylab = "WEB.Ranking.LA")
+#Filtramos las universidades para resaltar
+highlight_indices <- which(r14_Sci_Qs_Webometrics$UniPais %in%
+                             c("DO ESTADO SCT - BRA",
+                               "Fe DE GOIAS - BRA",
+                               "e DO MG DSUL - BRA",
+                               "COLIMA - MEX",
+                               "Fe SCT - BRA",
+                               "Fe DO PARA (UFPR) - BRA")) #Corregir
+                               #las universidadespara resaltar
+
+# Etiquetas estándar (sin resaltar), omitir las etiquetas resaltadas
+for (i in 1:nrow(r14_Sci_Qs_Webometrics)) {
+  if (!(i %in% highlight_indices)) {
+    text(r14_Sci_Qs_Webometrics$QS.Ranking[i], r14_Sci_Qs_Webometrics$WEB.Ranking.LA[i],
+         labels = r14_Sci_Qs_Webometrics$UniPais[i], cex = 0.35, pos = 2)
+  }
+}
+# Agregar la línea diagonal
+abline(a = 0, b = 1, col = "red", lty = 2)
+# Resaltar las etiquetas específicas
+text(r14_Sci_Qs_Webometrics$QS.Ranking[highlight_indices],
+     r14_Sci_Qs_Webometrics$WEB.Ranking.LA[highlight_indices],
+     labels = r14_Sci_Qs_Webometrics$UniPais[highlight_indices],
+     col = "red", font = 3, cex = 0.4, pos = 3)
+```
+
+## Punto 3
+
+```{r}
+panel.dens <- function(x, ...) {
+  usr <- par("usr")  
+  on.exit(par(usr = usr))  
+  par(usr = c(usr[1:2], 0, 1.5))  
+  dens <- density(x)  
+  y <- dens$y / max(dens$y)  
+  lines(dens$x, y, col = "cyan", lwd = 2, ...)  
+}
+
+# Función panel.cor para calcular y mostrar correlaciones
+
+panel.cor <- function(x, y, digits = 2, prefix = "", cex.cor, ...) {
+  usr <- par("usr")  
+  on.exit(par(usr = usr))  
+  par(usr = c(0, 1, 0, 1))  
+  r <- cor(x, y, use = "pairwise.complete.obs", method = "spearman")  # Calcular la correlación
+  txt <- round(r, digits = digits)  
+  txt <- paste0(prefix, txt)  
+  
+  if (missing(cex.cor)) cex.cor <- 0.8 / strwidth(txt)
+  text_size <- cex.cor * max(abs(r), 0.8) 
+  
+  text(0.5, 0.5, txt, cex = text_size) 
+}
+
+# Seleccionar las columnas de los rankings
+rankings_data <- ARWU_100_top[, c("World.Rank","National.Rank", "Regional.Rank")]
+
+# Generar la matriz de dispersión
+pairs(rankings_data,
+      cex = 0.8, pch = 23, bg = "light blue", 
+      diag.panel = panel.dens, cex.labels = 1, font.labels = 3,
+      lower.panel = panel.cor, gap = 0, row1attop = FALSE)
+```
+
+## Punto 4
+
+```{r}
+g_arwu <- ggplot(ARWU_100_top, aes(x = `World.Rank`, y = `Regional.Rank`,
+                                color = HiCi, size = Award, label = Institution)) +
+  geom_point(alpha = 0.7) +  
+  geom_text(vjust = -0.5, size = 3) +  # Nombres de instituciones arriba de cada punto
+  theme_bw() +
+  ggtitle("Relación entre ranking mundial, ranking regional, premios y publicaciones citadas") +
+  xlab("World Rank") +
+  ylab("Regional Rank") +
+  scale_color_gradient(low = "lightblue", high = "red", name = "HiCi") +
+  scale_size_continuous(name = "Premios")
+
+print(g_arwu)
+```
+
+## Punto 5 {.scrollable .smaller}
+
+```{r}
+# Asegúrarse de que el campo HiCi esté en formato numérico
+ARWU_100_top$HiCi <- as.numeric(gsub(",", ".", ARWU_100_top$HiCi))
+
+# Filtra las primeras 20 universidades segun el World.Rank
+top_20 <- ARWU_100_top %>%
+  arrange(desc(HiCi)) %>%
+  slice(1:20)
+
+top_20 |> gt() |> gtExtras::gt_theme_538()
+```
+
+## {.active}
+
+```{r}
+# Prepara los datos para la nube de palabras
+# Selecciona la columna de la universidad y el número de publicaciones (HiCi) como el tamaño de cada palabra
+wordcloud_data <- top_20 %>%
+  select(Institution, HiCi) %>%
+  na.omit() %>%
+  rename(word = Institution, freq = HiCi)
+# Genera la nube de palabras
+wordcloud(wordcloud_data$word,wordcloud_data$freq, scale=c(2,0.5), 
+          max.words=100, random.order=FALSE, rot.per=0.4,
+          use.r.layout=FALSE, random.color = TRUE, colors = 1:20)
+```
+
+##  {.scrollable .smaller}
+
+```{r}
+# Divide en dos grupos: las primeras 10 y las siguientes 10
+top_10 <- top_20 %>% slice(1:10)
+
+top_10 |> gt() |> gtExtras::gt_theme_538()
+```
+
+##  {.scrollable .smaller}
+
+```{r}
+next_10 <- top_20 %>% slice(11:20)
+next_10 |> gt() |> gtExtras::gt_theme_538()
+```
+
+```{r}
+# Análisis de las diferencias en HiCi entre los dos grupos
+mean_top_10 <- mean(top_10$HiCi, na.rm = TRUE)
+mean_next_10 <- mean(next_10$HiCi, na.rm = TRUE)
+difference <- mean_top_10 - mean_next_10
+
+# Resultado del análisis
+cat("Promedio de HiCi en el Top 10:", mean_top_10, "\n")
+cat("Promedio de HiCi en el Top 11-20:", mean_next_10, "\n")
+cat("Diferencia promedio:", difference, "\n")
+```
+
+## Punto 6 {.scrollable .smaller}
+
+Se seleccionan las variables correspondientes a los grupos `CYT`, `INFRA` y `FIN`. A continación se muestran los Boxplots de cada una de las variables en cada grupo:
+
+```{r}
+ciudades <- read_excel("datos/ciudades original-filtrado-con etiquetas.xlsx")
+
+cyt_infra_fin <- ciudades |> dplyr::select(dplyr::starts_with(c("CYT", "INFRA", "FIN")))
+
+cyt_infra_fin2 <- cyt_infra_fin |> tidyr::pivot_longer(everything(), names_to = "Variable", values_to = "Valor") |> arrange(Variable) |>
+  mutate(
+    Tipo = case_when(
+      startsWith(Variable, "CYT") ~ "CYT",
+      startsWith(Variable, "INFRA") ~ "INFRA",
+      startsWith(Variable, "FIN") ~ "FIN",
+      TRUE ~ NA
+    ))
+
+ggplot(cyt_infra_fin2, aes(x=Tipo, y=Valor, fill=Variable)) +
+  geom_boxplot()
+```
+
+##  {.scrollable .smaller}
+
+Estandarización de las variables & identificación de datos atípicos:
+
+```{r}
+cyt_infra_fin3 <- cyt_infra_fin |>
+  mutate(across(everything(), ~ (. - mean(.))/sd(.))) |> tidyr::pivot_longer(everything(), names_to = "Variable", values_to = "Valor") |> arrange(Variable) |>
+  mutate(
+    Tipo = case_when(
+      startsWith(Variable, "CYT") ~ "CYT",
+      startsWith(Variable, "INFRA") ~ "INFRA",
+      startsWith(Variable, "FIN") ~ "FIN",
+      TRUE ~ NA
+    ))
+
+ggplot(cyt_infra_fin3, aes(x=Tipo, y=Valor, fill=Variable)) +
+  geom_boxplot()
+```
+
+## Punto 7 {.scrollable .smaller}
+
+Transformación de Box-Cox:
+
+```{r}
+cyt_infra_fin_outliers <- cyt_infra_fin |> dplyr::select(CYT_18,CYT_20,FIN_40,FIN_41,FIN_42,FIN_43,FIN_44,FIN_46,INFRA_26,INFRA_27,INFRA_28,INFRA_33,INFRA_37,INFRA_38)
+
+box_cox <- function(tipo){
+  datos <- cyt_infra_fin |> dplyr::select(colnames(cyt_infra_fin_outliers)) |> dplyr::select(-FIN_46) |>  dplyr::select(starts_with(tipo))
+  for (i in 1:dim(datos)[2]){
+    datos2 = datos[,i]
+    nombre_variable <- colnames(datos2)
+    colnames(datos2) <-  "y"
+    box_cox_trans <- MASS::boxcox(y ~ 1, data = datos2, lambda = seq(-2, 2, by = 0.1), plotit = F)
+    lambda_vals <- box_cox_trans$x
+    log_likelihood_vals <- box_cox_trans$y
+    lambda_optimo <- lambda_vals[which.max(log_likelihood_vals)]
+    plot(density(datos2$y), main = "Datos originales",
+           xlab = nombre_variable, cex.main = 2, cex.axis = 1.5, cex.names = 1.5, col = "red")
+    plot(lambda_vals, log_likelihood_vals, type = "l",
+           xlab = "Lambda", ylab = "Log-Likelihood",
+           main = TeX(paste("Box-Cox", "\\lambda", "=",round(lambda_optimo,2))), cex.main = 2, cex.axis = 1.5, cex.names = 1.5, col = "green")
+    abline(v = lambda_optimo, col = "red", lty = 2)
+    plot(density((datos2$y^lambda_optimo-1)/lambda_optimo),
+         main = "Transformación de Box-Cox",
+         xlab = paste(nombre_variable, "después de la T. de Box-Cox"), cex.main = 2, cex.axis = 1.5, cex.names = 1.5,
+         col = "blue")
+  }
+}
+```
+
+A continuación se muestran los respectivos gráficos para las variables del grupo C&T:
+
+```{r}
+#| layout-ncol: 3
+#| layout-nrow: 1
+box_cox(tipo="CYT")
+```
+
+##  {.scrollable .smaller}
+
+las del grupo FIN:
+
+```{r}
+#| layout-ncol: 3
+#| layout-nrow: 5
+box_cox(tipo="FIN")
+```
+
+##  {.scrollable .smaller}
+
+y las del grupo INFRA:
+
+```{r}
+#| layout-ncol: 3
+#| layout-nrow: 3
+box_cox(tipo="INFRA")
+```
+
+## {.scrollable .smaller}
+
+La variable `FIN_46` tiene valores negativos. A esta variable se le realizó la transformación de Yeo-Johnson:
+
+```{r}
+#| layout-ncol: 2
+#| layout-nrow: 1
+FIN46 <- cyt_infra_fin$FIN_46
+yj <- yeojohnson(FIN46)
+lambda_yj <- round(yj$lambda,3)
+
+plot(density(FIN46), main = "Datos originales",
+     xlab = "FIN_46", cex.main = 2, cex.axis = 1.5, cex.names = 1.5, col = "red")
+plot(density(yj$x.t),
+     main = TeX(paste("Transformación de Yeo-Johnson", "\\lambda", "=",lambda_yj)),
+     xlab = paste("FIN_46", "después de la T. de Yeo-Johnson"), cex.main = 1.5,
+     col = "blue")
+```
+
+
+## Punto 8 {.scrollable .smaller}
+
+```{r}
+ciudades <- read_excel("datos/ciudades original-filtrado-con etiquetas - copia.xlsx")
+
+# Inicialización de vectores requeridos
+Limite_inferior <- vector()
+Limite_superior <- vector()
+q1 <- vector()
+q3 <- vector()
+iqr <- vector()
+
+# Cálculo de los cuartiles y el rango intercuartílico
+for (i in 2:ncol(ciudades)) {
+  q1[i] <- quantile(ciudades[, i], 0.25, na.rm = TRUE)
+  q3[i] <- quantile(ciudades[, i], 0.75, na.rm = TRUE)
+  iqr[i] <- q3[i] - q1[i]
+}
+
+# Cálculo de los umbrales
+for (i in 2:ncol(ciudades)) {
+  Limite_inferior[i] <- q1[i] - 1.5 * iqr[i]
+  Limite_superior[i] <- q3[i] + 1.5 * iqr[i]
+}
+
+# Creación de la matriz para identificar valores atípicos
+atipi <- matrix(FALSE, nrow = nrow(ciudades), ncol = ncol(ciudades) - 1)
+for (i in 2:ncol(ciudades)) {
+  atipi[, i - 1] <- ciudades[, i] < Limite_inferior[i] | ciudades[, i] > Limite_superior[i]
+}
+
+# Filtrando las ciudades con valores atípicos
+atipic <- ciudades[apply(atipi, 1, any), ]
+
+# Crear una copia para mostrar los valores con asterisco si son atípicos
+ciudades_modificadas <- as.data.frame(atipic) |> 
+  mutate(across(where(is.numeric), round, 3))
+
+# Sustituir valores atípicos por "*"
+for (i in 2:ncol(ciudades_modificadas)) {
+  ciudades_modificadas[, i] <- sapply(1:nrow(ciudades_modificadas), function(j) {
+    if (atipic[j, i] < Limite_inferior[i] | atipic[j, i] > Limite_superior[i]) {
+      "*"  # Reemplazar por asterisco si es atípico
+    } else {
+      as.character(atipic[j, i])  # Mantener el valor original como texto
+    }
+  })
+}
+
+# Selección de los intervalos para las tablas 2, 3 y 4
+intervalos <- list(
+  16:20,  # Tabla 2
+  21:30,  # Tabla 3
+  31:38   # Tabla 4
+)
+
+tabla1 <- ciudades_modificadas[, c(1, intervalos[[1]])]
+tabla2 <- ciudades_modificadas[, c(1, intervalos[[2]])]
+tabla3 <- ciudades_modificadas[, c(1, intervalos[[3]])]
+
+# Crear la tabla con kableExtra para una visualización bonita
+kableExtra::kable(tabla1, "html", caption = "Ciudades atípicas - Variables CYT") |> 
+    kable_styling(bootstrap_options = c("striped", "hover", "responsive"), 
+                  full_width = F, position = "center", font_size = 15) |> 
+    column_spec(1, bold = TRUE, color = "white", background = "darkblue") |> 
+    column_spec(2:ncol(tabla1), background = "lightgray")
+```
+
+## {.scrollable .smaller}
+
+```{r}
+kableExtra::kable(tabla2, "html", caption = "Ciudades atípicas - Variables INFRA") |> 
+    kable_styling(bootstrap_options = c("striped", "hover", "responsive"), 
+                  full_width = F, position = "center", font_size = 15) |> 
+    column_spec(1, bold = TRUE, color = "white", background = "darkblue") |> 
+    column_spec(2:ncol(tabla2), background = "lightgray")
+```
+
+
+## {.scrollable .smaller}
+
+```{r}
+kableExtra::kable(tabla3, "html", caption = "Ciudades atípicas - Variables FIN") |> 
+    kable_styling(bootstrap_options = c("striped", "hover", "responsive"), 
+                  full_width = F, position = "center", font_size = 15) |> 
+    column_spec(1, bold = TRUE, color = "white", background = "darkblue") |> 
+    column_spec(2:ncol(tabla3), background = "lightgray")
+```
+
+## Punto 9 {.scrollable .smaller}
+
+```{r}
+# Función para calcular la distancia de Mahalanobis y graficar
+calcular_mahalanobis <- function(ciudades, var1, var2, ciudad1, ciudad2, resultados) {
+  # Selección de las variables
+  data <- subset(ciudades, select = c(var1, var2))
+  rownames(data) <- ciudades$CIUDADES
+  
+  # Cálculo de la distancia entre las dos ciudades
+  dist_mahalanobis <- mahalanobis(as.numeric(data[which(rownames(data) == ciudad1),]),
+                                  as.numeric(data[which(rownames(data) == ciudad2),]),
+                                  cov(data))
+  
+  # Cálculo de la distancia de Mahalanobis respecto a la media
+  dist_media <- mahalanobis(data[which(rownames(data) == ciudad1 | rownames(data) == ciudad2),],
+                            colMeans(data), cov(data))
+  
+  # Agregar los resultados a la tabla
+  resultados <- rbind(resultados, data.frame(
+    Ciudad1 = ciudad1,
+    Ciudad2 = ciudad2,
+    Distancia_Mahal = dist_mahalanobis,
+    Distancia_media_ciudad1 = dist_media[1],
+    Distancia_media_ciudad2 = dist_media[2],
+    Variables = paste(var1, var2, sep = " & ")
+  ))
+  
+  # Mostrar distancias
+  print(paste("Distancia Mahalanobis entre", ciudad1, "y", ciudad2, ": ", dist_mahalanobis))
+  print(paste("Distancia Mahalanobis de",ciudad1,"respecto a la media: ", dist_media[1]))
+  print(paste("Distancia Mahalanobis de",ciudad2,"respecto a la media: ", dist_media[2]))
+  
+  # Graficar
+  xbar <- colMeans(data)
+  plot(ciudades[[var1]], ciudades[[var2]],
+       xlab = var1, ylab = var2, main = paste("Gráfico de", var1, "vs", var2),
+       xlim = c(min(ciudades[[var1]]), max(ciudades[[var1]])),
+       ylim = c(min(ciudades[[var2]]), max(ciudades[[var2]])))
+  
+  # Añadir las etiquetas de las ciudades
+  text(ciudades[[var1]], ciudades[[var2]], ciudades$CIUDADES, cex = 0.5, pos = 3)
+  
+  # Dibujar líneas de la media
+  abline(h = xbar[2], col = "orange", lty = 2)
+  abline(v = xbar[1], col = "orange", lty = 2)
+  
+  # Etiqueta para la media
+  text(xbar[1] - 0.2, xbar[2] - 0.02,
+       labels = expression(bar(x) ~ "y" ~ bar(y)),
+       col = "purple", cex = 0.7, font = 1, las = 2)
+  
+  # Devolver los resultados actualizados
+  return(resultados)
+}
+
+# Cargar archivo y datos
+archivo <- "datos/ciudades original-filtrado-con etiquetas - copia.xlsx"
+ciudades <- read_excel(archivo)
+ciudades[ciudades$CIUDADES=="San Arés",1] <-  "San Andres"
+
+# Crear una tabla vacía para almacenar los resultados
+resultados <- data.frame(Ciudad1 = character(0), Ciudad2 = character(0), 
+                         Distancia_Mahal = numeric(0), Distancia_Media_ciudad1 = numeric(0), 
+                         Distancia_Media_ciudad2 = numeric(0),
+                         Variables = character(0))
+
+# Llamar a la función para diferentes combinaciones de variables y ciudades, y almacenar los resultados
+resultados <- calcular_mahalanobis(ciudades, "CYT_20", "CYT_21", "Riohacha", "San Andres", resultados)
+resultados <- calcular_mahalanobis(ciudades, "CYT_18", "CYT_19", "Riohacha", "San Andres", resultados)
+resultados <- calcular_mahalanobis(ciudades, "INFRA_27", "INFRA_28", "Riohacha", "San Andres", resultados)
+resultados <- calcular_mahalanobis(ciudades, "INFRA_25", "INFRA_30", "Riohacha", "San Andres", resultados)
+resultados <- calcular_mahalanobis(ciudades, "FIN_41", "FIN_43", "Riohacha", "San Andres", resultados)
+resultados <- calcular_mahalanobis(ciudades, "FIN_39", "FIN_44", "Riohacha", "San Andres", resultados)
+
+resultados <- calcular_mahalanobis(ciudades, "CYT_20", "CYT_21", "Bogotá, D.C.", "Pereira", resultados)
+resultados <- calcular_mahalanobis(ciudades, "CYT_18", "CYT_19", "Bogotá, D.C.", "Pereira", resultados)
+resultados <- calcular_mahalanobis(ciudades, "INFRA_27", "INFRA_28", "Bogotá, D.C.", "Pereira", resultados)
+resultados <- calcular_mahalanobis(ciudades, "INFRA_25", "INFRA_30", "Bogotá, D.C.", "Pereira", resultados)
+resultados <- calcular_mahalanobis(ciudades, "FIN_41", "FIN_43", "Bogotá, D.C.", "Pereira", resultados)
+resultados <- calcular_mahalanobis(ciudades, "FIN_39", "FIN_44", "Bogotá, D.C.", "Pereira", resultados)
+```
+
+## {.scrollable .smaller}
+
+```{r}
+# Mostrar la tabla con todas las distancias calculadas
+
+resultados |> gt() |> gtExtras::gt_theme_538()
+```
+
+
+
+

@@ -1,0 +1,4 @@
+"0","plot(density(yj$x.t),"
+"0","     main = TeX(paste(""Transformación de Yeo-Johnson"", ""\\lambda"", ""="",lambda_yj)),"
+"0","     xlab = paste(""FIN_46"", ""después de la T. de Yeo-Johnson""), cex.main = 1.5,"
+"0","     col = ""blue"")"

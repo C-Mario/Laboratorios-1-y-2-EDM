@@ -1,0 +1,634 @@
+---
+title: "Laboratorio 1"
+subtitle: "Estadística Descriptiva Multivariada"
+author: Maria Fernanda Martinez -- David Santiago Caballero -- Leidy Tatiana Sanchez -- Thomas Felipe Matallana -- Diego Andres Paez -- Carlos Mario Castaño
+institute: UNAL - Departamento de estadística
+date: today
+date-format: "dddd, D [de] MMMM, YYYY"
+lang: es
+format:
+  revealjs: 
+    fontsize: 30px
+    scrollable: true
+    smaller: true
+    theme: simple
+    css: custom.scss
+    logo: logo2.png
+    embed-resources: false
+fig-responsive: true
+echo: true
+code-fold: true
+code-summary: ""
+warning: false
+editor_options: 
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+#| output: false
+library(readxl)
+library(tm)
+library(wordcloud)
+library(SnowballC)
+library(readr)
+library(tidyverse)
+library(lattice)
+library(MASS)
+library(latex2exp)
+library(bestNormalize)
+library(gt)
+library(gtExtras)
+library(dplyr)
+library(ggplot2)
+library(htmlwidgets)
+library(kableExtra)
+library(distances)
+
+options(scipen = 999)
+```
+
+## Laboratorio 1 {.center}
+
+```{css, echo = FALSE}
+.center h2 {
+  text-align: center;
+}
+```
+
+## Punto 3  
+
+Con los datos del `arwu` elaborar una matriz de dispersión para los rankings mundial, regional y nacional con las densidades aproximadas en la diagonal y las correlaciones en el triángulo inferior de la matriz.
+
+```{r}
+ARWU_100_top <- read.csv2("datos/ARWU_100_top.csv", sep = ";")
+data <-  data.frame(Universidades = as.factor(ARWU_100_top$Institution),
+                   Premios_Nobel = ARWU_100_top$Award)
+
+panel.dens <- function(x, ...) {
+  usr <- par("usr")  
+  on.exit(par(usr = usr))  
+  par(usr = c(usr[1:2], 0, 1.5))  
+  dens <- density(x)  
+  y <- dens$y / max(dens$y)  
+  lines(dens$x, y, col = "cyan", lwd = 2, ...)  
+}
+
+# Función panel.cor para calcular y mostrar correlaciones
+
+panel.cor <- function(x, y, digits = 2, prefix = "", cex.cor, ...) {
+  usr <- par("usr")  
+  on.exit(par(usr = usr))  
+  par(usr = c(0, 1, 0, 1))  
+  r <- cor(x, y, use = "pairwise.complete.obs", method = "spearman")  # Calcular la correlación
+  txt <- round(r, digits = digits)  
+  txt <- paste0(prefix, txt)  
+  
+  if (missing(cex.cor)) cex.cor <- 0.8 / strwidth(txt)
+  text_size <- cex.cor * max(abs(r), 0.8) 
+  
+  text(0.5, 0.5, txt, cex = text_size) 
+}
+
+# Seleccionar las columnas de los rankings
+rankings_data <- ARWU_100_top[, c("World.Rank","National.Rank", "Regional.Rank")]
+
+# Generar la matriz de dispersión
+pairs(rankings_data,
+      cex = 0.8, pch = 23, bg = "light blue", 
+      diag.panel = panel.dens, cex.labels = 1, font.labels = 3,
+      lower.panel = panel.cor, gap = 0, row1attop = FALSE)
+```
+
+## Punto 4 
+
+Elaborar una gráfica de cuatro variables del tipo Gráfica 1.10, ejemplo 1.6.1 con datos del `arwu` que contenga en las abscisas el ranking mundial, en las ordenadas el ranking regional, el tamaño de los puntos sea el indicador de premios nobel o medallas Field (`Award`) y el color corresponda a las publicaciones altamente citadas (`HiCi`). 
+
+¿Se puede identificar algún patrón o tendencia entre estas cuatro variables?
+```{r}
+ggplot(ARWU_100_top, aes(x = `World.Rank`, y = `Regional.Rank`,
+                         color = HiCi, size = Award, label = Institution)) +
+  geom_point(alpha = 0.7) +
+  geom_text(vjust = -0.5, size = 3) +  # Nombres de instituciones arriba de cada punto
+  theme_bw() +
+  ggtitle("Relación entre ranking mundial, ranking regional, premios y publicaciones citadas") +
+  xlab("World Rank") +
+  ylab("Regional Rank") +
+  scale_color_gradient(low = "lightblue", high = "red", name = "HiCi") +
+  scale_size_continuous(name = "Premios")
+```
+
+## Punto 5 
+
+Construir una nube de palabras que muestre las primeras 20 universidades según el según el `World.Rank`, por su número de publicaciones altamente citadas (`HiCi`). 
+
+¿Se puede afirmar que las primeras 10 se distinguen claramente de las otras 10, por su número de publicaciones?
+
+```{r}
+# Asegúrarse de que el campo HiCi esté en formato numérico
+ARWU_100_top$HiCi <- as.numeric(gsub(",", ".", ARWU_100_top$HiCi))
+
+# Filtra las primeras 20 universidades segun el World.Rank
+top_20 <- ARWU_100_top |> 
+  select(Institution,Region,Country,World.Rank,HiCi) |> 
+  arrange(desc(HiCi)) |> 
+  slice(1:20)
+
+# Prepara los datos para la nube de palabras
+# Selecciona la columna de la universidad y el número de publicaciones (HiCi) como el tamaño de cada palabra
+wordcloud_data <- top_20 %>%
+  select(Institution, HiCi) %>%
+  na.omit() %>%
+  rename(word = Institution, freq = HiCi)
+# Genera la nube de palabras
+wordcloud(wordcloud_data$word,wordcloud_data$freq, scale=c(3,1),
+          max.words=100, random.order=FALSE, rot.per=0.4,
+          use.r.layout=FALSE, random.color = TRUE, colors = 1:20)
+```
+
+## {.center}
+
+```{css, echo = FALSE}
+.center h2 {
+  text-align: center;
+}
+```
+
+```{r}
+#| echo: false
+top20 <- top_20 |> left_join(ARWU_100_top, by = "Institution", keep = FALSE, suffix = c("","")) |> 
+  select(Institution,Region,Country,World.Rank,,,HiCi)
+```
+
+:::: {.columns}
+
+::: {.column width="50%"}
+#### Tabla de posiciones 1 - 10 de `HiCi` según `World.Rank`
+```{r}
+#| echo: false
+top20 |> slice(1:10) |> gt() |> gtExtras::gt_theme_538() 
+```
+
+:::
+
+::: {.column width="50%"}
+#### Tabla de posiciones 11 - 20 de `HiCi` según `World.Rank`
+
+```{r}
+#| echo: false
+top20 |> slice(11:20) |> gt() |> gtExtras::gt_theme_538() 
+```
+
+:::
+
+::::
+
+## Punto 7 
+
+Para las variables que tienen datos atípicos identificadas en el ejercicio 6 buscar una transformación que estabilice la varianza y mostrar graficos comparativos de datos originales y datos transformafos como en el ejemplo 1.9.1.
+
+```{r}
+ciudades <- read_excel("datos/ciudades original-filtrado-con etiquetas.xlsx")
+
+cyt_infra_fin <- ciudades |> dplyr::select(dplyr::starts_with(c("CYT", "INFRA", "FIN")))
+
+cyt_infra_fin2 <- cyt_infra_fin |> tidyr::pivot_longer(everything(), names_to = "Variable", values_to = "Valor") |> arrange(Variable) |>
+  mutate(
+    Tipo = case_when(
+      startsWith(Variable, "CYT") ~ "CYT",
+      startsWith(Variable, "INFRA") ~ "INFRA",
+      startsWith(Variable, "FIN") ~ "FIN",
+      TRUE ~ NA
+    ))
+
+ggplot(cyt_infra_fin2, aes(x=Tipo, y=Valor, fill=Variable)) +
+  geom_boxplot()
+```
+
+## 
+
+Estandarización de las variables & identificación de datos atípicos:
+
+```{r}
+cyt_infra_fin3 <- cyt_infra_fin |>
+  mutate(across(everything(), ~ (. - mean(.))/sd(.))) |> tidyr::pivot_longer(everything(), names_to = "Variable", values_to = "Valor") |> arrange(Variable) |>
+  mutate(
+    Tipo = case_when(
+      startsWith(Variable, "CYT") ~ "CYT",
+      startsWith(Variable, "INFRA") ~ "INFRA",
+      startsWith(Variable, "FIN") ~ "FIN",
+      TRUE ~ NA
+    ))
+
+ggplot(cyt_infra_fin3, aes(x=Tipo, y=Valor, fill=Variable)) +
+  geom_boxplot()
+```
+
+##
+
+Transformación de Box-Cox:
+
+```{r}
+cyt_infra_fin_outliers <- cyt_infra_fin |> dplyr::select(CYT_18,CYT_20,FIN_40,FIN_41,FIN_42,FIN_43,FIN_44,FIN_46,INFRA_26,INFRA_27,INFRA_28,INFRA_33,INFRA_37,INFRA_38)
+
+box_cox <- function(tipo){
+  datos <- cyt_infra_fin |> dplyr::select(colnames(cyt_infra_fin_outliers)) |> dplyr::select(-FIN_46) |>  dplyr::select(starts_with(tipo))
+  for (i in 1:dim(datos)[2]){
+    datos2 = datos[,i]
+    nombre_variable <- colnames(datos2)
+    colnames(datos2) <-  "y"
+    box_cox_trans <- MASS::boxcox(y ~ 1, data = datos2, lambda = seq(-2, 2, by = 0.1), plotit = F)
+    lambda_vals <- box_cox_trans$x
+    log_likelihood_vals <- box_cox_trans$y
+    lambda_optimo <- lambda_vals[which.max(log_likelihood_vals)]
+    plot(density(datos2$y), main = "Datos originales",
+           xlab = nombre_variable, cex.main = 2, cex.axis = 1.5, cex.names = 1.5,  cex.lab = 1.5, col = "red")
+    plot(lambda_vals, log_likelihood_vals, type = "l",
+           xlab = "Lambda", ylab = "Log-Likelihood",
+           main = TeX(paste("Box-Cox", "\\lambda", "=",round(lambda_optimo,2))), cex.main = 2, cex.axis = 1.5, cex.names = 1.5,  cex.lab = 1.5, col = "green")
+    abline(v = lambda_optimo, col = "red", lty = 2)
+    plot(density((datos2$y^lambda_optimo-1)/lambda_optimo),
+         main = "Transformación de Box-Cox",
+         xlab = paste(nombre_variable, "después de la T. de Box-Cox"), cex.main = 2, cex.axis = 1.5, cex.names = 1.5,  cex.lab = 1.5,
+         col = "blue")
+  }
+}
+```
+
+A continuación se muestran los respectivos gráficos para las variables del grupo C&T:
+
+```{r}
+#| echo: false
+#| layout-ncol: 3
+#| layout-nrow: 1
+box_cox(tipo="CYT")
+```
+
+## 
+
+las del grupo FIN:
+
+```{r}
+#| echo: false
+#| layout-ncol: 3
+#| layout-nrow: 5
+box_cox(tipo="FIN")
+```
+
+## 
+
+y las del grupo INFRA:
+
+```{r}
+#| echo: false
+#| layout-ncol: 3
+#| layout-nrow: 3
+box_cox(tipo="INFRA")
+```
+
+## 
+
+La variable `FIN_46` tiene valores negativos. A esta variable se le realizó la transformación de Yeo-Johnson:
+
+```{r}
+#| layout-ncol: 2
+#| layout-nrow: 1
+FIN46 <- cyt_infra_fin$FIN_46
+yj <- yeojohnson(FIN46)
+lambda_yj <- round(yj$lambda,3)
+
+plot(density(FIN46), main = "Datos originales",
+     xlab = "FIN_46", cex.main = 2, cex.axis = 1.5, cex.names = 1.5, col = "red")
+plot(density(yj$x.t),
+     main = TeX(paste("Transformación de Yeo-Johnson", "\\lambda", "=",lambda_yj)),
+     xlab = paste("FIN_46", "después de la T. de Yeo-Johnson"), cex.main = 1.5,
+     col = "blue")
+```
+
+## Punto 9
+
+Calcular la matriz de correlación entre las variables del grupo C&T del archivo ciudadesC y escoger las dos variables que tienen mayor correlación. Calcular la distancia euclidiana entre San Andrés y Riohacha con respecto a estas dos variables y luego calcular la distancia de Mahalanobis entre las mismas ciudades respecto a las mismas dos variables. Para el cálculo de la la distancia de Mahalanobis utilizar la matriz de covarianzas de las dos variables con todas las ciudades.
+
+```{r}
+#|echo: false
+# Cargar archivo y datos
+archivo <- "datos/ciudades original-filtrado-con etiquetas - copia.xlsx"
+ciudades <- read_excel(archivo)
+ciudades[ciudades$CIUDADES=="San Arés",1] <-  "San Andres"
+CYT <- ciudades |> dplyr::select(dplyr::starts_with("CYT")) |> as.data.frame()
+round(cor(CYT),3) |> as.data.frame() |> gt()
+```
+
+```{r}
+# Función para calcular la distancia de Mahalanobis y graficar
+calcular_mahalanobis <- function(ciudades, var1, var2, ciudad1, ciudad2, resultados) {
+  # Selección de las variables
+  data <- subset(ciudades, select = c(var1, var2))
+  rownames(data) <- ciudades$CIUDADES
+
+  # Cálculo de la distancia entre las dos ciudades
+  dist_mahalanobis <- mahalanobis(as.numeric(data[which(rownames(data) == ciudad1),]),
+                                  as.numeric(data[which(rownames(data) == ciudad2),]),
+                                  cov(data))
+
+  # Cálculo de la distancia de Mahalanobis respecto a la media
+  dist_media <- mahalanobis(data[which(rownames(data) == ciudad1 | rownames(data) == ciudad2),],
+                            colMeans(data), cov(data))
+
+  # Agregar los resultados a la tabla
+  resultados <- rbind(resultados, data.frame(
+    Ciudad1 = ciudad1,
+    Ciudad2 = ciudad2,
+    Distancia_Mahal = dist_mahalanobis,
+    Distancia_media_ciudad1 = dist_media[1],
+    Distancia_media_ciudad2 = dist_media[2],
+    Variables = paste(var1, var2, sep = " & ")
+  ))
+
+  # Mostrar distancias
+  print(paste("Distancia Mahalanobis entre", ciudad1, "y", ciudad2, ": ", dist_mahalanobis))
+  print(paste("Distancia Mahalanobis de",ciudad1,"respecto a la media: ", dist_media[1]))
+  print(paste("Distancia Mahalanobis de",ciudad2,"respecto a la media: ", dist_media[2]))
+
+  # # Graficar
+  # xbar <- colMeans(data)
+  # plot(ciudades[[var1]], ciudades[[var2]],
+  #      xlab = var1, ylab = var2, main = paste("Gráfico de", var1, "vs", var2),
+  #      xlim = c(min(ciudades[[var1]]), max(ciudades[[var1]])),
+  #      ylim = c(min(ciudades[[var2]]), max(ciudades[[var2]])))
+  # 
+  # # Añadir las etiquetas de las ciudades
+  # text(ciudades[[var1]], ciudades[[var2]], ciudades$CIUDADES, cex = 0.5, pos = 3)
+  # 
+  # # Dibujar líneas de la media
+  # abline(h = xbar[2], col = "orange", lty = 2)
+  # abline(v = xbar[1], col = "orange", lty = 2)
+  # 
+  # # Etiqueta para la media
+  # text(xbar[1] - 0.2, xbar[2] - 0.02,
+  #      labels = expression(bar(x) ~ "y" ~ bar(y)),
+  #      col = "purple", cex = 0.7, font = 1, las = 2)
+
+  # Devolver los resultados actualizados
+  return(resultados)
+}
+
+# Crear una tabla vacía para almacenar los resultados
+resultados <- data.frame(Ciudad1 = character(0), Ciudad2 = character(0),
+                         Distancia_Mahal = numeric(0), Distancia_Media_ciudad1 = numeric(0),
+                         Distancia_Media_ciudad2 = numeric(0),
+                         Variables = character(0))
+
+# Llamar a la función para diferentes combinaciones de variables y ciudades, y almacenar los resultados
+resultados <- calcular_mahalanobis(ciudades, "CYT_20", "CYT_21", "Riohacha", "San Andres", resultados)
+# resultados <- calcular_mahalanobis(ciudades, "CYT_18", "CYT_19", "Riohacha", "San Andres", resultados)
+# resultados <- calcular_mahalanobis(ciudades, "INFRA_27", "INFRA_28", "Riohacha", "San Andres", resultados)
+# resultados <- calcular_mahalanobis(ciudades, "INFRA_25", "INFRA_30", "Riohacha", "San Andres", resultados)
+# resultados <- calcular_mahalanobis(ciudades, "FIN_41", "FIN_43", "Riohacha", "San Andres", resultados)
+# resultados <- calcular_mahalanobis(ciudades, "FIN_39", "FIN_44", "Riohacha", "San Andres", resultados)
+
+# resultados <- calcular_mahalanobis(ciudades, "CYT_20", "CYT_21", "Bogotá, D.C.", "Pereira", resultados)
+# resultados <- calcular_mahalanobis(ciudades, "CYT_18", "CYT_19", "Bogotá, D.C.", "Pereira", resultados)
+# resultados <- calcular_mahalanobis(ciudades, "INFRA_27", "INFRA_28", "Bogotá, D.C.", "Pereira", resultados)
+# resultados <- calcular_mahalanobis(ciudades, "INFRA_25", "INFRA_30", "Bogotá, D.C.", "Pereira", resultados)
+# resultados <- calcular_mahalanobis(ciudades, "FIN_41", "FIN_43", "Bogotá, D.C.", "Pereira", resultados)
+# resultados <- calcular_mahalanobis(ciudades, "FIN_39", "FIN_44", "Bogotá, D.C.", "Pereira", resultados)
+```
+
+##
+
+```{r}
+# Mostrar la tabla con todas las distancias calculadas
+
+resultados |> gt() |> gtExtras::gt_theme_538()
+```
+
+## Laboratorio 2 {.center}
+
+```{css, echo = FALSE}
+.center h2 {
+  text-align: center;
+}
+```
+
+## Punto 1
+
+El vector de medias de todas las variables.
+
+- ¿Cuál es la variable que tiene la mayor media?
+- ¿Cuál es la variable que tiene la menor media?
+- ¿A qué puede atribuirse la diferencia en los valores de los dos promedios?
+
+```{r}
+# Cargar y renombrar las columnas
+Ciudades <- read_excel("datos/ciudades original-filtrado-con etiquetas - copia.xlsx")
+colnames(Ciudades)[colnames(Ciudades) == "RH_1"] <- "PC"
+colnames(Ciudades)[colnames(Ciudades) == "RH_2"] <- "TCP"
+colnames(Ciudades)[colnames(Ciudades) == "RH_5"] <- "AA"
+colnames(Ciudades)[colnames(Ciudades) == "RH_6"] <- "CBPS"
+colnames(Ciudades)[colnames(Ciudades) == "RH_7"] <- "CBES"
+colnames(Ciudades)[colnames(Ciudades) == "RH_8"] <- "RAP"
+colnames(Ciudades)[colnames(Ciudades) == "RH_9"] <- "CC"
+colnames(Ciudades)[colnames(Ciudades) == "RH_10"] <- "CPT"
+colnames(Ciudades)[colnames(Ciudades) == "RH_11"] <- "CS"
+colnames(Ciudades)[colnames(Ciudades) == "RH_12"] <- "MI"
+colnames(Ciudades)[colnames(Ciudades) == "RH_13"] <- "DCFS"
+colnames(Ciudades)[colnames(Ciudades) == "RH_14"] <- "VI"
+colnames(Ciudades)[colnames(Ciudades) == "RH_15"] <- "H"
+colnames(Ciudades)[colnames(Ciudades) == "RH_16"] <- "S"
+RH <- Ciudades[,1:15]
+
+# Calcular las medias
+med <- round(t(colMeans(RH[,2:15])), 2)
+med <- as.data.frame(round(colMeans(RH[,2:15]), 2))
+colnames(med) <- c("Media")
+
+# Centrar la tabla y ajustar el tamaño
+med %>%
+  kable("html") %>%
+  kable_styling("basic", full_width = FALSE, position = "center") %>%
+  kable_styling(font_size = 16) %>%
+  column_spec(1, bold = TRUE) %>%
+  kable_styling(bootstrap_options = c("striped", "hover")) %>%
+  row_spec(0, bold = TRUE)
+```
+
+## Punto 2
+
+Calcular la matriz $Y$ de datos centrados y estandarizados y contestar los items 1a y 1b del punto 1. ¿A qué pueden atriburse las diferencias en los promedios ahora?
+
+$$y_{ij} = \frac{x_{ij} - \bar{x}_j}{\sigma_j}$$
+```{r}
+Y <- scale(RH[,2:15], scale = T)
+# Redondear la matriz 'Y' a 2 decimales
+Y <- round(Y, 2)
+
+med <- as.data.frame(round(colMeans(Y), 2))
+colnames(med) <- c("Media")
+
+# Centrar la tabla y ajustar el tamaño
+med %>%
+  kable("html") %>%
+  kable_styling("basic", full_width = FALSE, position = "center") %>%
+  kable_styling(font_size = 16) %>%
+  column_spec(1, bold = TRUE) %>%
+  kable_styling(bootstrap_options = c("striped", "hover")) %>%
+  row_spec(0, bold = TRUE)
+```
+
+
+## Punto 4
+
+Calcular la matriz de correlación $R$. Identificar las dos variables con mayor correlación y las dos con menor correlación. ¿Son las mismas que las que tienen mayor y menor covarianza identificadas en el punto 3?
+
+```{r}
+# Calcular la matriz de correlación
+R <- cor(RH[,2:15])
+R <- round(R, 2)
+
+# cat("Matriz de correlación R:\n")
+R |> as.data.frame() |> gt(rownames_to_stub = TRUE) |> tab_header("Matriz de correlación") |> gt_theme_dot_matrix() |> opt_align_table_header(align = "center")
+```
+
+
+```{r}
+# Convertir la matriz de correlación en formato largo y omitir la diagonal
+correlaciones <- as.data.frame(as.table(R))
+correlaciones <- correlaciones[correlaciones$Var1 != correlaciones$Var2, ]
+
+# Identificar las dos mayores y menores correlaciones
+mayor_cor <- head(correlaciones[order(-abs(correlaciones$Freq)), ], 2)
+menor_cor <- head(correlaciones[order(abs(correlaciones$Freq)), ], 2)
+
+tibble(
+  a = c("Las dos variables con mayor correlación", "Las dos variables con menor correlación"),
+  `Variable 1` = c(mayor_cor[1,1],menor_cor[1,1]),
+  `Variable 2` = c(mayor_cor[1,2],menor_cor[1,2]),
+  Correlación = c(mayor_cor[1,3], menor_cor[1,3]))|> 
+  gt(rowname_col = "a") |> gt_theme_538()
+```
+
+## Punto 7
+
+Calcular la distancia euclidiana entre ciudades respecto a las variables Analfabetismo y Rel.al.prof e identificar las dos ciudades más cercanas y las dos ciudades más lejanas.
+
+```{r}
+Ciudad <- Ciudades[, c("CIUDADES", "AA", "RAP")]
+Ciudad <- as.data.frame(Ciudad)
+
+rownames(Ciudad)<-Ciudad$CIUDADES
+rownames(Ciudad)[17] <- "San Andrés"
+X <- Ciudad[,-1]
+
+# Cálculo de la distancia euclidiana
+De <- distances(X, id_variable = row.names(X))
+De <- round(as.matrix(De), 2)
+
+# Mostrar la matriz de distancias
+De |> as.data.frame() |> gt(rownames_to_stub = TRUE) |> gt_theme_dot_matrix() |> 
+  tab_header("Matriz de distancias euclidianas") |> 
+  opt_align_table_header(align = "center") 
+```
+
+## {.center}
+
+```{css, echo = FALSE}
+.center h2 {
+  text-align: center;
+}
+```
+
+```{r}
+# Convertir la matriz de distancias en un data frame
+De_df <- as.data.frame(as.table(De))
+
+# Eliminar los duplicados dejando solo la mitad superior de la matriz (sin la diagonal)
+De_df <- De_df[upper.tri(De, diag = FALSE), ]
+
+# Renombrar columnas del data frame
+colnames(De_df) <- c("Ciudad 1", "Ciudad 2", "Distancia")
+
+# Ordenar las distancias de mayor a menor
+De_df <- De_df[order(-De_df$Distancia), ]
+
+# Seleccionar las 2 ciudades más distantes
+ciudades_mas_distantes <- head(De_df, 2)
+
+# Seleccionar las 2 ciudades más cercanas
+ciudades_mas_cercanas <- tail(De_df, 2)
+
+row.names(ciudades_mas_distantes) <- NULL
+row.names(ciudades_mas_cercanas) <- NULL
+```
+
+:::: {.columns}
+
+::: {.column width="50%"}
+```{r}
+#| echo: false
+ciudades_mas_distantes |> gt() |> gt_theme_538() |> tab_header("Ciudades más lejanas") |> opt_align_table_header(align = "center")
+```
+
+:::
+
+::: {.column width="50%"}
+
+```{r}
+#| echo: false
+ciudades_mas_cercanas |> gt() |> gt_theme_538() |> tab_header("Ciudades más cercanas") |> opt_align_table_header(align = "center")
+```
+
+:::
+
+::::
+
+## Punto 9
+
+Comprobar que la matriz de covarianzas se puede obtener con el producto $\frac{1}{n}\tilde{X}^\prime\tilde{X}$ calcuandola a partir de la matriz de datos centrados de la matriz $RH$
+
+```{r}
+# Centrar las columnas de la subtabla RH
+Xtil <- scale(RH[,2:15], scale = FALSE) 
+
+n <- nrow(Xtil)
+
+# Matriz de covarianzas calculada manualmente
+cov_matrix_manual <- (1 / n) * t(Xtil) %*% Xtil  
+
+# Matriz de covarianzas 
+cov_matrix_R <- var(RH[,2:15])
+
+#Comparacion 
+all.equal(cov_matrix_manual, cov_matrix_R)
+```
+
+La diferencia en los resultados radica en que la función var() en R utiliza por defecto $\frac{1}{n-1}$ que es el estimador muestral para calcular la varianza de una variable cuantitativa.
+
+```{r}
+# Matriz de covarianzas ajustando el estimador muestral calculada manualmente)
+cov_matrix_adjman <- (1 / (n-1)) * t(Xtil) %*% Xtil  
+
+all.equal(cov_matrix_adjman, cov_matrix_R)
+```
+
+
+## Punto 10
+
+Comprobar que la matriz de correlación se puede obtener con el producto $\frac{1}{n}Y^\prime Y$ calcuandola a partir de la matriz de datos centrados estandarizado de la matriz RH
+
+```{r}
+Y <- scale(RH[,2:15])
+n <- nrow(Y)
+MCor <- cor(RH[,2:15])
+
+Resultado1 <- 1 / n * t(Y) %*% Y
+
+all.equal(MCor, Resultado1)
+```
+
+Nuevamente, la diferencia en los resultados radica en que la función cor() en R utiliza por defecto $\frac{1}{n-1}$, que es el estimador muestral para calcular la varianza de una variable cuantitativa.
+
+```{r}
+Resultado2 <- 1 / (n - 1) * t(Y) %*% Y  
+all.equal(MCor, Resultado2)
+```
+

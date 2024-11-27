@@ -1,0 +1,4 @@
+"0","# Divide en dos grupos: las primeras 10 y las siguientes 10"
+"0","top_10 <- top_20 %>% slice(1:10)"
+"0",""
+"0","top_10 |> gt() |> gtExtras::gt_theme_538()"

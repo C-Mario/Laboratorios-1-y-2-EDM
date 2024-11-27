@@ -1,0 +1,427 @@
+---
+title: "Laboratorio 2"
+author: "Estadistica descriptiva multivariada"
+institute: UNAL - Departamento de estadística
+date: today
+date-format: "dddd, D [de] MMMM, YYYY"
+lang: es
+format: 
+  revealjs:
+    theme: serif
+    embed-resources: true
+echo: true
+code-fold: true
+code-summary: ""
+---
+
+## [Autores]{style="color:#9932CC"}
+
+-   Caballero Gutierrez David Santiago
+-   Castaño Suaza Carlos Mario
+-   Martinez Cardenas Maria Fernanda
+-   Matallana Fiquitiva Thomas Felipe
+-   Paez Molina Diego Andres
+-   Sanchez Guarnizo Leidy Tatiana
+
+## [Punto 1]{style="color:#9932CC"}
+
+El vector de medias de todas las variables.
+
+```{r, fig.align = 'center'}
+library(readxl)
+library(kableExtra)
+
+# Cargar y renombrar las columnas
+Ciudades <- read_excel("Ciudades.xlsx")
+colnames(Ciudades)[colnames(Ciudades) == "RH_1"] <- "PC"
+colnames(Ciudades)[colnames(Ciudades) == "RH_2"] <- "TCP"
+colnames(Ciudades)[colnames(Ciudades) == "RH_5"] <- "AA"
+colnames(Ciudades)[colnames(Ciudades) == "RH_6"] <- "CBPS"
+colnames(Ciudades)[colnames(Ciudades) == "RH_7"] <- "CBES"
+colnames(Ciudades)[colnames(Ciudades) == "RH_8"] <- "RAP"
+colnames(Ciudades)[colnames(Ciudades) == "RH_9"] <- "CC"
+colnames(Ciudades)[colnames(Ciudades) == "RH_10"] <- "CPT"
+colnames(Ciudades)[colnames(Ciudades) == "RH_11"] <- "CS"
+colnames(Ciudades)[colnames(Ciudades) == "RH_12"] <- "MI"
+colnames(Ciudades)[colnames(Ciudades) == "RH_13"] <- "DCFS"
+colnames(Ciudades)[colnames(Ciudades) == "RH_14"] <- "VI"
+colnames(Ciudades)[colnames(Ciudades) == "RH_15"] <- "H"
+colnames(Ciudades)[colnames(Ciudades) == "RH_16"] <- "S"
+
+# Calcular las medias
+med <- round(t(colMeans(Ciudades[, 2:15])), 2)
+med <- as.data.frame(round(colMeans(Ciudades[, 2:15]), 2))
+colnames(med) <- c("Media")
+
+# Centrar la tabla y ajustar el tamaño
+med %>%
+  kable("html") %>%
+  kable_styling("basic", full_width = FALSE, position = "center") %>%
+  kable_styling(font_size = 18) %>%
+  column_spec(1, bold = TRUE) %>%
+  kable_styling(bootstrap_options = c("striped", "hover")) %>%
+  row_spec(0, bold = TRUE)
+
+```
+
+## [Punto 1]{style="color:#9932CC"}
+
+-   ¿Cuál es la variable que tiene la menor media? La variable que tiene mayor media es la Población de la ciudad (PC).
+
+-   ¿Cuál es la variable que tiene la menor media? La variable que tiene la menor media es la Tasa de Crecimiento de la Población (TCP)
+
+## [Punto 1]{style="color:#9932CC"}
+
+-   ¿A qué puede atribuirse la diferencia en los valores de los dos promedios? La diferencia en los valores de los promedios puede atribuirse a las unidades que representan las variables. En este caso, la Poblacion de la ciudad (PC) tiene una media de 888021,77, lo que indica que se trata de una variable en una escala mucho mayor (población), ya que se trata de el n´umero de personas. Por otro lado, la Tasa de Crecimiento de la Población (TCP) tiene una media de 0,01 que representa una tasa o proporción, lo que explica su menor valor promedio.
+
+## [Punto 2]{style="color:#9932CC"}
+
+Calcular la matriz Y de datos centrados y estandarizado.
+
+```{r}
+library(readxl)
+Ciudades <- read_excel("Ciudades.xlsx")
+colnames(Ciudades)[colnames(Ciudades) == "RH_1"] <- "PC"
+colnames(Ciudades)[colnames(Ciudades) == "RH_2"] <- "TCP"
+colnames(Ciudades)[colnames(Ciudades) == "RH_5"] <- "AA"
+colnames(Ciudades)[colnames(Ciudades) == "RH_6"] <- "CBPS"
+colnames(Ciudades)[colnames(Ciudades) == "RH_7"] <- "CBES"
+colnames(Ciudades)[colnames(Ciudades) == "RH_8"] <- "RAP"
+colnames(Ciudades)[colnames(Ciudades) == "RH_9"] <- "CC"
+colnames(Ciudades)[colnames(Ciudades) == "RH_10"] <- "CPT"
+colnames(Ciudades)[colnames(Ciudades) == "RH_11"] <- "CS"
+colnames(Ciudades)[colnames(Ciudades) == "RH_12"] <- "MI"
+colnames(Ciudades)[colnames(Ciudades) == "RH_13"] <- "DCFS"
+colnames(Ciudades)[colnames(Ciudades) == "RH_14"] <- "VI"
+colnames(Ciudades)[colnames(Ciudades) == "RH_15"] <- "H"
+colnames(Ciudades)[colnames(Ciudades) == "RH_16"] <- "S"
+Xtil<-scale(Ciudades[,2:15], scale = T)
+# Redondear la matriz 'Xtil' a 2 decimales
+Xtil_redondeadas <- round(Xtil, 2)
+print(Xtil_redondeadas)
+```
+
+## [Punto 2]{style="color:#9932CC"}
+
+La diferencia entre las medias se debe a que al estandarizar los datos esto garantiza que el vector de medias va a ser un vector de ceros, por lo tanto, al calcular el vector de medias con los datos sin estandarizar estamos la tendencia central en la escala normal, pero al estandarizarlo vamos a tener medias de cero.
+
+## [Punto 3]{style="color:#9932CC"}
+
+La matriz de covarianzas muestra la variación compartida entre pares de variables. Identificar las mayores y menores covarianzas permite entender cuáles variables tienen mayor y menor relación en términos de variabilidad conjunta.
+
+```{r}
+Ciudades_numeric <- Ciudades[, sapply(Ciudades, is.numeric)]
+
+# Calcular la matriz de covarianzas
+S <- cov(Ciudades_numeric)
+S <- round(S, 2)
+
+# Convertir la matriz de covarianzas en formato largo y omitir la diagonal
+covarianzas <- as.data.frame(as.table(S))
+covarianzas <- covarianzas[covarianzas$Var1 != covarianzas$Var2, ]
+
+# Identificar las dos mayores y menores covarianzas
+mayor_cov <- head(covarianzas[order(-covarianzas$Freq), ], 2)
+menor_cov <- head(covarianzas[order(covarianzas$Freq), ], 2)
+
+# Resultados
+cat("Matriz de covarianzas S:\n")
+print(S)
+
+```
+
+## [Punto 3]{style="color:#9932CC"}
+
+```{r}
+cat("\nLas dos variables con mayor covarianza son:\n")
+print(mayor_cov)
+```
+
+```{r}
+cat("\nLas dos variables con menor covarianza son:\n")
+print(menor_cov)
+```
+
+## [Punto 4]{style="color:#9932CC"}
+
+La matriz de correlación 𝑅 mide la relación lineal entre pares de variables, sin depender de sus escalas.
+
+```{r}
+# Calcular la matriz de correlación
+R <- cor(Ciudades_numeric)
+R <- round(R, 2)
+
+# Convertir la matriz de correlación en formato largo y omitir la diagonal
+correlaciones <- as.data.frame(as.table(R))
+correlaciones <- correlaciones[correlaciones$Var1 != correlaciones$Var2, ]
+
+# Identificar las dos mayores y menores correlaciones
+mayor_cor <- head(correlaciones[order(-abs(correlaciones$Freq)), ], 2)
+menor_cor <- head(correlaciones[order(abs(correlaciones$Freq)), ], 2)
+```
+
+```{r}
+cat("Matriz de correlación R:\n")
+print(R)
+```
+
+## [Punto 4]{style="color:#9932CC"}
+
+```{r}
+cat("\nLas dos variables con mayor correlación son:\n")
+print(mayor_cor)
+```
+
+```{r}
+cat("\nLas dos variables con menor correlación son:\n")
+print(menor_cor)
+```
+
+## [Punto 5]{style="color:#9932CC"}
+
+El producto Y\texttt{′}Y al ser calculado sobre variables estandarizadas, debería coincidir con la matriz de correlación 𝑅. Esto sucede porque la estandarización normaliza las variables, permitiendo que sus covarianzas se transformen directamente en correlaciones.
+
+```{r,  include=FALSE}
+# Estandarizar la matriz de datos RH
+Y <- scale(Ciudades_numeric)
+
+# Calcular el producto Y'Y
+YtY <- t(Y) %*% Y / (nrow(Y) - 1)
+YtY <- round(YtY, 2)
+```
+
+```{r}
+cat("Producto Y'Y:\n")
+print(YtY)
+cat("\nMatriz de correlación R:\n")
+print(R)
+```
+
+```{r}
+# Verificar si Y'Y es igual a R
+identico <- all.equal(YtY, R)
+cat("\n¿Es Y'Y igual a R? ", identico, "\n")
+```
+
+## [Punto 6]{style="color:#9932CC"}
+
+Utilizar el archivo ciudades para construir un indicador de Recursos Humanos IRH con las variables Tasa de Crecimiento de la Población, Analfabetismo Absoluto, Cobertura bruta en educación superior, Relación alumno-profesor, Calidad de los colegios, Mortalidad Infantil con las siguientes ponderaciones b′ = (0,82, 0,89, −0,56, 0,77, −0,69, 0,64) respectivamente.
+
+Al observar la tabla con las variables, nos damos cuenta que no estan medidas en la misma escala, por lo tanto se estandarizan las variables
+
+## [Punto 6]{style="color:#9932CC"}
+
+Estandarizamos las variables y nos queda la siguiente tabla:
+
+```{r}
+#Importamos la tabla
+library(readxl)
+Indicador <- read_excel("Indicador.xlsx")
+colnames(Indicador)[colnames(Indicador) == "RH_2"] <- "TCP"
+colnames(Indicador)[colnames(Indicador) == "RH_5"] <- "AA"
+colnames(Indicador)[colnames(Indicador) == "RH_7"] <- "CBES"
+colnames(Indicador)[colnames(Indicador) == "RH_8"] <- "RAP"
+colnames(Indicador)[colnames(Indicador) == "RH_9"] <- "CC"
+colnames(Indicador)[colnames(Indicador) == "RH_12"] <- "MI"
+
+Indicador1 <- as.data.frame(Indicador[,-1])
+rownames(Indicador1) <- Indicador$CIUDADES
+
+#Estandarizamos las variables para que tenga sentido
+Indicador_estandarizado <- as.data.frame(scale(Indicador1))
+Indicador_estandarizado
+```
+
+## [Punto 6]{style="color:#9932CC"}
+
+Realizamos el calculo de las combinaciones lineales para cada ciudad:
+
+```{r}
+# Realizamos las combinaciones lineales
+ponderaciones <- c(0.82, 0.89, -0.56, 0.77, -0.69, 0.64)
+
+# Crear un vector vacío para almacenar los resultados de las combinaciones lineales
+combinaciones <- numeric(22)
+
+# Calcular las combinaciones lineales
+for (i in 1:22) {
+  fila <- Indicador_estandarizado[i, ]
+  combinacion <- sum(fila * ponderaciones)
+  combinaciones[i] <- combinacion
+}
+
+# Crear un data frame con los resultados
+resultado <- data.frame(Ciudad = rownames(Indicador_estandarizado), Combinacion = combinaciones)
+
+# Mostrar la tabla centrada y con tamaño ajustado
+resultado %>%
+  kable("html") %>%
+  kable_styling("basic", full_width = FALSE, position = "center") %>%
+  kable_styling(font_size = 12) %>%   # Tamaño de fuente ajustado
+  column_spec(1, bold = TRUE) %>%
+  kable_styling(bootstrap_options = c("striped", "hover")) %>%
+  row_spec(0, bold = TRUE)
+
+```
+
+## [Punto 6]{style="color:#9932CC"}
+
+por lo tanto, la tabla con el indicador de recursos humanos (IRH) nos quedaria asi:
+
+```{r}
+IRH <- c(-2.35115, -1.198219, -3.88349, -4.056861, -2.119058, 1.268714, 0.2948288, -0.4071047, -3.028496, 0.2934701, 3.479673, -0.0413025, -1.849455, -1.956823, -2.723258, 10.53961, -1.974952, 2.093005, 2.535739, -1.00447, 3.872996, 2.216603)
+Indicador_estandarizado$IRH <- IRH
+Indicador_estandarizado
+```
+
+## [Punto 7]{style="color:#9932CC"}
+
+```{r}
+library(readxl)
+library(distances)
+# Cargar y renombrar las columnas
+Ciudades <- read_excel("Ciudades.xlsx")
+colnames(Ciudades)[colnames(Ciudades) == "RH_1"] <- "PC"
+colnames(Ciudades)[colnames(Ciudades) == "RH_2"] <- "TCP"
+colnames(Ciudades)[colnames(Ciudades) == "RH_5"] <- "AA"
+colnames(Ciudades)[colnames(Ciudades) == "RH_6"] <- "CBPS"
+colnames(Ciudades)[colnames(Ciudades) == "RH_7"] <- "CBES"
+colnames(Ciudades)[colnames(Ciudades) == "RH_8"] <- "RAP"
+colnames(Ciudades)[colnames(Ciudades) == "RH_9"] <- "CC"
+colnames(Ciudades)[colnames(Ciudades) == "RH_10"] <- "CPT"
+colnames(Ciudades)[colnames(Ciudades) == "RH_11"] <- "CS"
+colnames(Ciudades)[colnames(Ciudades) == "RH_12"] <- "MI"
+colnames(Ciudades)[colnames(Ciudades) == "RH_13"] <- "DCFS"
+colnames(Ciudades)[colnames(Ciudades) == "RH_14"] <- "VI"
+colnames(Ciudades)[colnames(Ciudades) == "RH_15"] <- "H"
+colnames(Ciudades)[colnames(Ciudades) == "RH_16"] <- "S"
+
+Ciudad <- Ciudades[, c("CIUDADES", "AA", "RAP")]
+Ciudad <- as.data.frame(Ciudad)
+
+rownames(Ciudad)<-Ciudad$CIUDADES
+X <- Ciudad[,-1]
+
+# Cálculo de la distancia euclidiana
+De <- distances(X, id_variable = row.names(X))
+De <- round(as.matrix(De), 2)
+
+# Mostrar la matriz de distancias
+print(De)
+```
+
+## [Punto 7]{style="color:#9932CC"}
+
+```{r}
+# Convertir la matriz de distancias en un data frame
+De_df <- as.data.frame(as.table(De))
+
+# Eliminar los duplicados dejando solo la mitad superior de la matriz (sin la diagonal)
+De_df <- De_df[upper.tri(De, diag = FALSE), ]
+
+# Renombrar columnas del data frame
+colnames(De_df) <- c("Ciudad 1", "Ciudad 2", "Distancia")
+
+# Ordenar las distancias de mayor a menor
+De_df <- De_df[order(-De_df$Distancia), ]
+
+# Seleccionar las 2 ciudades más distantes
+ciudades_mas_distantes <- head(De_df, 2)
+colnames(ciudades_mas_distantes) <- c("a) Más lejanas", " ", "Distancia")
+
+# Seleccionar las 2 ciudades más cercanas
+ciudades_mas_cercanas <- tail(De_df, 2)
+colnames(ciudades_mas_cercanas) <- c("b) Más cercanas", " ", "Distancia")
+
+# Combinar las tablas de ciudades más lejanas y cercanas
+ciud_lej_cerca <- cbind(ciudades_mas_distantes, ciudades_mas_cercanas)
+ciud_lej_cerca
+```
+
+## [Punto 8]{style="color:#9932CC"}
+
+```{r}
+rownames(Ciudad)<-Ciudad$CIUDADES
+Y <- Ciudad[,-1]
+
+DiMah<-distances(Y, id_variable = row.names(Y),
+                    normalize = "mahalanobize")
+DiMah<-round(as.matrix(DiMah),2)
+DiMah
+```
+
+## [Punto 8]{style="color:#9932CC"}
+```{r}
+# Convertir la matriz de distancias en un data frame
+DiMah_df <- as.data.frame(as.table(DiMah))
+
+# Eliminar los duplicados dejando solo la mitad superior de la matriz (sin la diagonal)
+DiMah_df <- DiMah_df[upper.tri(De, diag = FALSE), ]
+
+# Renombrar columnas del data frame
+colnames(DiMah_df) <- c("Ciudad 1", "Ciudad 2", "Distancia")
+
+# Ordenar las distancias de mayor a menor
+DiMah_df <- DiMah_df[order(-DiMah_df$Distancia), ]
+
+# Seleccionar las 2 ciudades más distantes
+ciudades_distantes <- head(DiMah_df, 2)
+colnames(ciudades_distantes) <- c("a) Más lejanas", " ", "Distancia")
+
+# Seleccionar las 2 ciudades más cercanas
+ciudades_cercanas <- tail(DiMah_df, 2)
+colnames(ciudades_cercanas) <- c("b) Más cercanas", " ", "Distancia")
+
+# Combinar las tablas de ciudades más lejanas y cercanas
+ciud_lejos_cerca <- cbind(ciudades_distantes, ciudades_cercanas)
+ciud_lejos_cerca
+```
+Interpretación: No, no son las mismas distancias que las obtenidas en el punto 7, esto se puede deber a que la distancia euclidiana no tomo en considerancion la correlación de las varaiables.
+
+## [Punto 9]{style="color:#9932CC"}
+
+Comprobar que la matriz de covarianzas se puede obtener con el producto 1/nX˜′X˜ calcuandola a partir de la matriz de datos centrados de la matriz RH
+
+```{r}
+library(readxl)
+RH <- read_excel("ciudades original-filtrado-con etiquetas - copia.xlsx",range=cell_cols(1:15))
+
+colnames(RH)=c("Ciudades","PC", "TCP", "AA","CBPS","CBES","RAP","CC","CPT","CS","MI","DCFS","VI","H","S")
+
+# Centrar las columnas de la subtabla RH
+Xtil <- scale(RH[,2:15], scale = FALSE) 
+
+n <- nrow(Xtil)
+
+# Matriz de covarianzas calculada manualmente
+cov_matrix_manual <- (1 / n) * t(Xtil) %*% Xtil  
+
+# Matriz de covarianzas 
+cov_matrix_R <- var(RH[,2:15])
+
+#Comparacion 
+all.equal(cov_matrix_manual, cov_matrix_R)
+
+cat("Interpretacion:La diferencia en los resultados radica en que la función var() en R utiliza por defecto 1/(n-1) que es el estimador muestral para calcular la varianza de una variable cuantitativa.")
+
+# Matriz de covarianzas ajustando el estimador muestral calculada manualmente)
+cov_matrix_adjman <- (1 / (n-1)) * t(Xtil) %*% Xtil  
+
+all.equal(cov_matrix_adjman, cov_matrix_R
+```
+
+## [Punto 10]{style="color:#9932CC"}
+
+```{r}
+Y <- scale(RH[, 2:15])
+n <- nrow(Y)
+MCor <- cor(RH[, 2:15])
+
+Resultado1 <- 1 / n * t(Y) %*% Y
+Resultado2 <- 1 / (n - 1) * t(Y) %*% Y  
+
+all.equal(MCor, Resultado1)
+all.equal(MCor, Resultado2)
+```
+
+# [Muchas gracias]{style="color:#9932CC"}

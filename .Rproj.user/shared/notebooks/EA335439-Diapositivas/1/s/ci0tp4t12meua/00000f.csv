@@ -1,0 +1,2 @@
+"0","next_10 <- top_20 %>% slice(11:20)"
+"0","next_10 |> gt() |> gtExtras::gt_theme_538()"

@@ -1,0 +1,25 @@
+/* Remove margins and padding around the fold button */
+.reveal .code-fold-button {
+  margin: 0;     /* Remove all margins */
+  padding: 0;    /* Remove all padding */
+  font-size: 8px; /* Optional: Adjust font size to your liking */
+}
+
+/* Optional: Adjust margin around code blocks to ensure tight spacing */
+.reveal pre {
+  margin: 0;     /* Remove all margins around code blocks */
+}
+
+details {
+    margin-bottom: 0em;
+}
+
+.reveal img {
+    margin: 0em;
+}
+
+.reveal pre code {
+  margin: 0;            /* Remove margin around code blocks */
+  padding: 5px;         /* Adjust padding inside the code block */
+  font-size: 14px;      /* Optional: Adjust font size for code */
+}
