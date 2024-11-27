@@ -106,11 +106,39 @@ pairs(rankings_data,
 Elaborar una gráfica de cuatro variables del tipo Gráfica 1.10, ejemplo 1.6.1 con datos del `arwu` que contenga en las abscisas el ranking mundial, en las ordenadas el ranking regional, el tamaño de los puntos sea el indicador de premios nobel o medallas Field (`Award`) y el color corresponda a las publicaciones altamente citadas (`HiCi`). 
 
 ¿Se puede identificar algún patrón o tendencia entre estas cuatro variables?
+
 ```{r}
+# Crear el gráfico
 ggplot(ARWU_100_top, aes(x = `World.Rank`, y = `Regional.Rank`,
-                         color = HiCi, size = Award, label = Institution)) +
-  geom_point(alpha = 0.7) +
-  geom_text(vjust = -0.5, size = 3) +  # Nombres de instituciones arriba de cada punto
+                               color = HiCi, size = Award)) +
+  geom_point(alpha = 0.7) +  
+  geom_text(aes(label = Institution), vjust = -0.5, size = 3, check_overlap = TRUE)+
+  theme_bw() +  # Usar tema blanco y negro
+  ggtitle("Relación entre Ranking Mundial, Regional, Award y HiCi") +
+  xlab("Ranking Mundial") +
+  ylab("Ranking Regional") +
+  scale_color_gradient(low = "lightblue", high = "red", name = "HiCi") +
+  scale_size_continuous(name = "Premios") +
+  scale_x_continuous(limits = c(0, 100)) +  # Limitar eje X de 0 a 100
+  scale_y_continuous(limits = c(0, 100))    # Limitar eje Y de 0 a 100
+```
+
+## {.center}
+
+```{css, echo = FALSE}
+.center h2 {
+  text-align: center;
+}
+```
+
+```{r}
+#-------------------con linea de tendencia
+ggplot(ARWU_100_top, aes(x = `World.Rank`, y = `Regional.Rank`,
+                                   color = HiCi, size = Award, label = Institution)) +
+  geom_point(alpha = 0.7) +  
+  geom_smooth(method = "lm", se = TRUE, 
+              linetype = "dashed", size = 1, color = "black", 
+              aes(label = NULL), fill = "lightgreen") + 
   theme_bw() +
   ggtitle("Relación entre ranking mundial, ranking regional, premios y publicaciones citadas") +
   xlab("World Rank") +
@@ -311,21 +339,25 @@ plot(density(yj$x.t),
 Calcular la matriz de correlación entre las variables del grupo C&T del archivo ciudadesC y escoger las dos variables que tienen mayor correlación. Calcular la distancia euclidiana entre San Andrés y Riohacha con respecto a estas dos variables y luego calcular la distancia de Mahalanobis entre las mismas ciudades respecto a las mismas dos variables. Para el cálculo de la la distancia de Mahalanobis utilizar la matriz de covarianzas de las dos variables con todas las ciudades.
 
 ```{r}
-#|echo: false
 # Cargar archivo y datos
 archivo <- "datos/ciudades original-filtrado-con etiquetas - copia.xlsx"
 ciudades <- read_excel(archivo)
-ciudades[ciudades$CIUDADES=="San Arés",1] <-  "San Andres"
+ciudades[ciudades$CIUDADES=="San Arés",1] <-  "San Andrés"
 CYT <- ciudades |> dplyr::select(dplyr::starts_with("CYT")) |> as.data.frame()
-round(cor(CYT),3) |> as.data.frame() |> gt()
+round(cor(CYT),3) |> as.data.frame() |> gt(rownames_to_stub = TRUE) |> tab_header("Matriz de correlación variables CYT") |> gt_theme_dot_matrix() |> opt_align_table_header(align = "center")
+```
+
+```{r}
+#| echo: false
+tibble(a = "Variables más correlacionadas", `Variable 1` = "CYT_20", `Variable 2` = "CYT_21", correlación = 0.663) |> gt(rowname_col = "a") |> gt_theme_538()
 ```
 
 ```{r}
 # Función para calcular la distancia de Mahalanobis y graficar
 calcular_mahalanobis <- function(ciudades, var1, var2, ciudad1, ciudad2, resultados) {
   # Selección de las variables
-  data <- subset(ciudades, select = c(var1, var2))
-  rownames(data) <- ciudades$CIUDADES
+  data <- subset(ciudades, select = c(var1, var2)) |> as.data.frame()
+  row.names(data) <- ciudades$CIUDADES
 
   # Cálculo de la distancia entre las dos ciudades
   dist_mahalanobis <- mahalanobis(as.numeric(data[which(rownames(data) == ciudad1),]),
@@ -335,40 +367,43 @@ calcular_mahalanobis <- function(ciudades, var1, var2, ciudad1, ciudad2, resulta
   # Cálculo de la distancia de Mahalanobis respecto a la media
   dist_media <- mahalanobis(data[which(rownames(data) == ciudad1 | rownames(data) == ciudad2),],
                             colMeans(data), cov(data))
+  
+  dist_euclideana <- as.matrix(dist(data))[ciudad1,ciudad2]
 
   # Agregar los resultados a la tabla
   resultados <- rbind(resultados, data.frame(
     Ciudad1 = ciudad1,
     Ciudad2 = ciudad2,
-    Distancia_Mahal = dist_mahalanobis,
+    `Distancia de Mahalanobis` = dist_mahalanobis,
     Distancia_media_ciudad1 = dist_media[1],
     Distancia_media_ciudad2 = dist_media[2],
+    `Distancia Euclideana` = dist_euclideana,
     Variables = paste(var1, var2, sep = " & ")
   ))
 
   # Mostrar distancias
-  print(paste("Distancia Mahalanobis entre", ciudad1, "y", ciudad2, ": ", dist_mahalanobis))
-  print(paste("Distancia Mahalanobis de",ciudad1,"respecto a la media: ", dist_media[1]))
-  print(paste("Distancia Mahalanobis de",ciudad2,"respecto a la media: ", dist_media[2]))
+  # print(paste("Distancia Mahalanobis entre", ciudad1, "y", ciudad2, ": ", dist_mahalanobis))
+  # print(paste("Distancia Mahalanobis de",ciudad1,"respecto a la media: ", dist_media[1]))
+  # print(paste("Distancia Mahalanobis de",ciudad2,"respecto a la media: ", dist_media[2]))
 
-  # # Graficar
-  # xbar <- colMeans(data)
-  # plot(ciudades[[var1]], ciudades[[var2]],
-  #      xlab = var1, ylab = var2, main = paste("Gráfico de", var1, "vs", var2),
-  #      xlim = c(min(ciudades[[var1]]), max(ciudades[[var1]])),
-  #      ylim = c(min(ciudades[[var2]]), max(ciudades[[var2]])))
-  # 
-  # # Añadir las etiquetas de las ciudades
-  # text(ciudades[[var1]], ciudades[[var2]], ciudades$CIUDADES, cex = 0.5, pos = 3)
-  # 
-  # # Dibujar líneas de la media
-  # abline(h = xbar[2], col = "orange", lty = 2)
-  # abline(v = xbar[1], col = "orange", lty = 2)
-  # 
-  # # Etiqueta para la media
-  # text(xbar[1] - 0.2, xbar[2] - 0.02,
-  #      labels = expression(bar(x) ~ "y" ~ bar(y)),
-  #      col = "purple", cex = 0.7, font = 1, las = 2)
+  # Graficar
+  xbar <- colMeans(data)
+  plot(ciudades[[var1]], ciudades[[var2]],
+       xlab = var1, ylab = var2, main = paste("Gráfico de", var1, "vs", var2),
+       xlim = c(min(ciudades[[var1]]), max(ciudades[[var1]])),
+       ylim = c(min(ciudades[[var2]]), max(ciudades[[var2]])))
+  
+  # Añadir las etiquetas de las ciudades
+  text(ciudades[[var1]], ciudades[[var2]], ciudades$CIUDADES, cex = 0.5, pos = 3)
+  
+  # Dibujar líneas de la media
+  abline(h = xbar[2], col = "orange", lty = 2)
+  abline(v = xbar[1], col = "orange", lty = 2)
+  
+  # Etiqueta para la media
+  text(xbar[1] - 0.2, xbar[2] - 0.02,
+       labels = expression(bar(x) ~ "y" ~ bar(y)),
+       col = "purple", cex = 0.7, font = 1, las = 2)
 
   # Devolver los resultados actualizados
   return(resultados)
@@ -376,33 +411,176 @@ calcular_mahalanobis <- function(ciudades, var1, var2, ciudad1, ciudad2, resulta
 
 # Crear una tabla vacía para almacenar los resultados
 resultados <- data.frame(Ciudad1 = character(0), Ciudad2 = character(0),
-                         Distancia_Mahal = numeric(0), Distancia_Media_ciudad1 = numeric(0),
-                         Distancia_Media_ciudad2 = numeric(0),
+                         `Distancia de Mahalanobis` = numeric(0), Distancia_Media_ciudad1 = numeric(0),
+                         Distancia_Media_ciudad2 = numeric(0), `Distancia Euclideana` = numeric(0),
                          Variables = character(0))
-
-# Llamar a la función para diferentes combinaciones de variables y ciudades, y almacenar los resultados
-resultados <- calcular_mahalanobis(ciudades, "CYT_20", "CYT_21", "Riohacha", "San Andres", resultados)
-# resultados <- calcular_mahalanobis(ciudades, "CYT_18", "CYT_19", "Riohacha", "San Andres", resultados)
-# resultados <- calcular_mahalanobis(ciudades, "INFRA_27", "INFRA_28", "Riohacha", "San Andres", resultados)
-# resultados <- calcular_mahalanobis(ciudades, "INFRA_25", "INFRA_30", "Riohacha", "San Andres", resultados)
-# resultados <- calcular_mahalanobis(ciudades, "FIN_41", "FIN_43", "Riohacha", "San Andres", resultados)
-# resultados <- calcular_mahalanobis(ciudades, "FIN_39", "FIN_44", "Riohacha", "San Andres", resultados)
-
-# resultados <- calcular_mahalanobis(ciudades, "CYT_20", "CYT_21", "Bogotá, D.C.", "Pereira", resultados)
-# resultados <- calcular_mahalanobis(ciudades, "CYT_18", "CYT_19", "Bogotá, D.C.", "Pereira", resultados)
-# resultados <- calcular_mahalanobis(ciudades, "INFRA_27", "INFRA_28", "Bogotá, D.C.", "Pereira", resultados)
-# resultados <- calcular_mahalanobis(ciudades, "INFRA_25", "INFRA_30", "Bogotá, D.C.", "Pereira", resultados)
-# resultados <- calcular_mahalanobis(ciudades, "FIN_41", "FIN_43", "Bogotá, D.C.", "Pereira", resultados)
-# resultados <- calcular_mahalanobis(ciudades, "FIN_39", "FIN_44", "Bogotá, D.C.", "Pereira", resultados)
 ```
-
-##
 
 ```{r}
-# Mostrar la tabla con todas las distancias calculadas
+#| echo: false
+# Llamar a la función para diferentes combinaciones de variables y ciudades, y almacenar los resultados
+resultados <- calcular_mahalanobis(ciudades, "CYT_20", "CYT_21", "Riohacha", "San Andrés", resultados) |> 
+  select(c(1,2,3,6,7))
+colnames(resultados) <- c("Ciudad 1","Ciudad 2","Distancia de Mahalanobis","Distancia Euclideana","Variables")
+resultados |> relocate(Variables, .after = "Ciudad 2") |> relocate("Distancia Euclideana", .before = "Distancia de Mahalanobis") |> gt() |> tab_header("Distancia Euclideana y de Mahalanobis entre Riohacha y San Andrés") |> gt_theme_538() |> opt_align_table_header(align = "center")
 
-resultados |> gt() |> gtExtras::gt_theme_538()
 ```
+
+## Punto 11
+
+Repetir los ejercicios 9 y 10 con las variables del grupo INFRA
+
+```{r}
+ciudades <- read_excel("datos/ciudades original-filtrado-con etiquetas - copia.xlsx")
+
+# Función para calcular la distancia de Mahalanobis y graficar
+
+calcular_mahalanobis <- function(ciudades, var1, var2, ciudad1, ciudad2, resultados) {
+  # Selección de las variables y conversión a data frame
+  data <- as.data.frame(subset(ciudades, select = c(var1, var2)))
+  rownames(data) <- ciudades$CIUDADES
+  
+  # Convertir las variables a numéricas
+  data[, var1] <- as.numeric(data[, var1])
+  data[, var2] <- as.numeric(data[, var2])
+  
+  # Cálculo de la distancia de Mahalanobis entre las dos ciudades
+  dist_mahalanobis <- sqrt(mahalanobis(as.numeric(data[rownames(data) == ciudad1, ]),
+                                       colMeans(data),
+                                       cov(data)))
+  
+  # Agregar los resultados a la tabla
+  resultados <- rbind(resultados, data.frame(
+    Ciudad1 = ciudad1,
+    Ciudad2 = ciudad2,
+    Distancia_Mahal = round(dist_mahalanobis,3),
+    Variables = paste(var1, var2, sep = " & ")
+  ))
+  
+  # Mostrar distancias
+  # print(paste("Distancia Mahalanobis entre", ciudad1, "y", ciudad2, ": ", dist_mahalanobis))
+  
+  # Graficar
+  xbar <- colMeans(data)
+  plot(data[, 1], data[, 2],
+       xlab = var1, ylab = var2, main = paste("Gráfico de", var1, "vs", var2),
+       xlim = c(min(data[, 1], na.rm = TRUE), max(data[, 1], na.rm = TRUE)),
+       ylim = c(min(data[, 2], na.rm = TRUE), max(data[, 2], na.rm = TRUE)))
+  
+  # Añadir etiquetas de las ciudades
+  text(data[, 1], data[, 2], rownames(data), cex = 0.7, pos = 3)
+  
+  # Dibujar líneas de la media
+  abline(h = xbar[2], col = "orange", lty = 2)
+  abline(v = xbar[1], col = "orange", lty = 2)
+  
+  # Etiqueta para la media
+  text(xbar[1] - 0.2, xbar[2] - 0.02,
+       labels = expression(bar(x) ~ "y" ~ bar(y)),
+       col = "purple", cex = 0.7, font = 1, las = 2)
+  
+  # Devolver los resultados actualizados
+  return(resultados)
+}
+
+ciudades[ciudades$CIUDADES=="San Arés",1] <-  "San Andrés"
+
+# Crear tabla vacía para almacenar resultados
+resultados <- data.frame(Ciudad1 = character(0), Ciudad2 = character(0), 
+                         Distancia_Mahal = numeric(0),
+                         Variables = character(0))
+
+# Función para calcular la distancia euclidiana entre dos ciudades
+calcular_euclidiana <- function(ciudades, var1, var2, ciudad1, ciudad2) {
+  # Selección de las variables y conversión a data frame
+  data <- as.data.frame(subset(ciudades, select = c(var1, var2)))
+  rownames(data) <- ciudades$CIUDADES
+  
+  # Convertir las variables a numéricas
+  data[, var1] <- as.numeric(data[, var1])
+  data[, var2] <- as.numeric(data[, var2])
+  
+  # Extraer las coordenadas de las dos ciudades
+  coord_ciudad1 <- as.numeric(data[rownames(data) == ciudad1, ])
+  coord_ciudad2 <- as.numeric(data[rownames(data) == ciudad2, ])
+  
+  # Calcular la distancia euclidiana
+  dist_euclidiana <- round(sqrt(sum((coord_ciudad1 - coord_ciudad2)^2)),3)
+  
+  # Mostrar el resultado
+  # print(paste("Distancia Euclidiana entre", ciudad1, "y", ciudad2, ":", dist_euclidiana))
+  
+  # Devolver la distancia
+  return(dist_euclidiana)
+}
+```
+
+:::: {.columns}
+
+::: {.column width="50%"}
+#### Variables con mayor córrelación
+```{r}
+infra_vars <- subset(ciudades, select = startsWith(colnames(ciudades), "INFRA"))
+
+# Calcular la matriz de correlación
+cor_matrix <- cor(infra_vars)
+
+# Encontrar las variables con mayor correlación
+max_corr <- which(cor_matrix == max(cor_matrix[upper.tri(cor_matrix)]), arr.ind = TRUE)
+var1 <- colnames(infra_vars)[max_corr[1]]
+var2 <- colnames(infra_vars)[max_corr[2]]
+
+# Llamar a la función para las variables con mayor correlación
+dist_mahalanobis <- calcular_mahalanobis(ciudades, var1, var2, "San Andrés", "Riohacha", resultados)
+```
+
+```{r}
+#| echo: false
+dist_euclidiana <- calcular_euclidiana(ciudades, var1, var2, "San Andrés", "Riohacha")
+distancias <- cbind(dist_mahalanobis, dist_euclidiana)
+colnames(distancias) <- c("Ciudad 1","Ciudad 2","Distancia de Mahalanobis","Variables","Distancia Euclideana")
+
+distancias |> relocate(Variables, .after = "Ciudad 2") |> relocate("Distancia Euclideana", .before = "Distancia de Mahalanobis") |> gt() |> tab_header("Distancia Euclideana y de Mahalanobis entre Riohacha y San Andrés") |> gt_theme_538() |> opt_align_table_header(align = "center") |> 
+  tab_options(table.font.size = 10) |> tab_style(
+    style = list(
+      cell_text(size = px(10))
+    ),
+    locations = cells_column_labels()
+  )
+```
+
+:::
+
+::: {.column width="50%"}
+#### Variables con menor córrelación
+
+```{r}
+# Encontrar las variables con menor correlación
+min_corr <- which(cor_matrix == min(cor_matrix[upper.tri(cor_matrix)]), arr.ind = TRUE)
+var11 <- colnames(infra_vars)[min_corr[1]]
+var22 <- colnames(infra_vars)[min_corr[2]]
+
+# Llamar a la función para las variables con menor correlación
+dist_mahalanobis <- calcular_mahalanobis(ciudades, var11, var22, "San Andrés", "Riohacha", resultados)
+```
+
+```{r}
+#| echo: false
+dist_euclidiana <- calcular_euclidiana(ciudades, var11, var22, "San Andrés", "Riohacha")
+distancias <- cbind(dist_mahalanobis, dist_euclidiana)
+colnames(distancias) <- c("Ciudad 1","Ciudad 2","Distancia de Mahalanobis","Variables","Distancia Euclideana")
+
+distancias |> relocate(Variables, .after = "Ciudad 2") |> relocate("Distancia Euclideana", .before = "Distancia de Mahalanobis") |> gt() |> tab_header("Distancia Euclideana y de Mahalanobis entre Riohacha y San Andrés") |> gt_theme_538() |> opt_align_table_header(align = "center") |> tab_options(table.font.size = 10) |> tab_style(
+    style = list(
+      cell_text(size = px(10))
+    ),
+    locations = cells_column_labels()
+  )
+```
+
+:::
+
+::::
 
 ## Laboratorio 2 {.center}
 
