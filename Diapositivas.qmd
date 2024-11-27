@@ -144,7 +144,9 @@ ggplot(ARWU_100_top, aes(x = `World.Rank`, y = `Regional.Rank`,
   xlab("World Rank") +
   ylab("Regional Rank") +
   scale_color_gradient(low = "lightblue", high = "red", name = "HiCi") +
-  scale_size_continuous(name = "Premios")
+  scale_size_continuous(name = "Premios") +
+  scale_x_continuous(limits = c(0, 100)) +
+  scale_y_continuous(limits = c(0, 100))    # Limitar eje Y de 0 a 100
 ```
 
 ## Punto 5 
@@ -462,7 +464,7 @@ calcular_mahalanobis <- function(ciudades, var1, var2, ciudad1, ciudad2, resulta
   
   # Graficar
   xbar <- colMeans(data)
-  plot(data[, 1], data[, 2],
+  plot(data[, 1], data[, 2],,
        xlab = var1, ylab = var2, main = paste("Gráfico de", var1, "vs", var2),
        xlim = c(min(data[, 1], na.rm = TRUE), max(data[, 1], na.rm = TRUE)),
        ylim = c(min(data[, 2], na.rm = TRUE), max(data[, 2], na.rm = TRUE)))
