@@ -123,32 +123,6 @@ ggplot(ARWU_100_top, aes(x = `World.Rank`, y = `Regional.Rank`,
   scale_y_continuous(limits = c(0, 100))    # Limitar eje Y de 0 a 100
 ```
 
-## {.center}
-
-```{css, echo = FALSE}
-.center h2 {
-  text-align: center;
-}
-```
-
-```{r}
-#-------------------con linea de tendencia
-ggplot(ARWU_100_top, aes(x = `World.Rank`, y = `Regional.Rank`,
-                                   color = HiCi, size = Award, label = Institution)) +
-  geom_point(alpha = 0.7) +  
-  geom_smooth(method = "lm", se = TRUE, 
-              linetype = "dashed", size = 1, color = "black", 
-              aes(label = NULL), fill = "lightgreen") + 
-  theme_bw() +
-  ggtitle("Relación entre ranking mundial, ranking regional, premios y publicaciones citadas") +
-  xlab("World Rank") +
-  ylab("Regional Rank") +
-  scale_color_gradient(low = "lightblue", high = "red", name = "HiCi") +
-  scale_size_continuous(name = "Premios") +
-  scale_x_continuous(limits = c(0, 100)) +
-  scale_y_continuous(limits = c(0, 100))    # Limitar eje Y de 0 a 100
-```
-
 ## Punto 5 
 
 Construir una nube de palabras que muestre las primeras 20 universidades según el según el `World.Rank`, por su número de publicaciones altamente citadas (`HiCi`). 
